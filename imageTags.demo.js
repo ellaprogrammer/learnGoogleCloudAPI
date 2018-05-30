@@ -4,9 +4,17 @@ var sqlite3 = require("sqlite3").verbose();
 var dbFileName = "PhotoQ.db";
 var db = new sqlite3.Database(dbFileName);
 
+db.get('SELECT fileName FROM photoTags WHERE idNum = 2', dataCallback);
+
+function dataCallback( err, data ) {
+    var filename = data.fileName;
+    getImageTags(filename);
+}
+
 var API_KEY= 'AIzaSyCe31QbxiHWLedN6egRGDvckIQCMSj_dTU';
 
-function printTags(response) {
+function printTags(response, filename) {
+    //console.log(JSON.stringify(response));
     var tags = response.responses[0].labelAnnotations;
     var tagsStr = '';
     //console.log(tags);
@@ -22,18 +30,24 @@ function printTags(response) {
      var landmarkStr = response.responses[0].landmarkAnnotations[0].description;
      console.log("Landmark:",landmarkStr);
 
-     //updateDB("A Torre Manuelina.jpg", tagsStr,landmarkStr);
+     updateDB(filename, tagsStr,landmarkStr);
 
      //console.log(response.responses[0]);
 }
 
 function updateDB(filename, tags,landmark){
 
-  let sql = `UPDATE photoTags
-            SET landmark =`landmark, `tags=`tags` 
-            WHERE fileName =`filename;
+  var cmdStr = "UPDATE [photoTags] SET landmark='Belém', tags='sky' WHERE fileName='A Torre Manuelina.jpg'";
 
-  db.run(sql, function(err) {
+  var cmd = cmdStr.replace("Belém", landmark);
+  cmd = cmd.replace("sky", tags);
+  cmd = cmd.replace("A Torre Manuelina.jpg", 'http://lotus.idav.ucdavis.edu/public/ecs162/UNESCO/'+ filename);
+  console.log(cmd);
+
+  console.log("Updating entry with fileName: ",filename);
+
+
+  db.run(cmd, function(err) {
   if (err) {
     return console.error(err.message);
   }
@@ -45,9 +59,10 @@ function updateDB(filename, tags,landmark){
 
 } // end of updateDB
 
+
 function getImageTags(filename) {
 
-    var imageStringB64 = fs.readFileSync(filename).toString('base64');
+    var imageStringB64 = filename.toString('base64');
 
     var options = {
         hostname: 'vision.googleapis.com',
@@ -61,7 +76,7 @@ function getImageTags(filename) {
           "requests":[
             {
               "image":{
-                "content":imageStringB64
+                "source": {"imageUri": imageStringB64}
               },
               "features":[
                 {
@@ -86,7 +101,7 @@ function getImageTags(filename) {
         res.on('data', (d) => {
             response.push(d);
         }).on('end', () => {
-            printTags( JSON.parse(Buffer.concat(response)) );
+            printTags( JSON.parse(Buffer.concat(response)), filename );
         });
     });
 
@@ -95,6 +110,3 @@ function getImageTags(filename) {
     req.write( JSON.stringify(params) );
     req.end();
 }
-
-getImageTags("A Torre Manuelina.jpg");
-

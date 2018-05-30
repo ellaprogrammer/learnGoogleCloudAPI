@@ -1,15 +1,49 @@
 var https = require('https');
 var fs = require("fs");
+var sqlite3 = require("sqlite3").verbose();
+var dbFileName = "PhotoQ.db";
+var db = new sqlite3.Database(dbFileName);
 
 var API_KEY= 'AIzaSyCe31QbxiHWLedN6egRGDvckIQCMSj_dTU';
 
 function printTags(response) {
     var tags = response.responses[0].labelAnnotations;
+    var tagsStr = '';
+    //console.log(tags);
 
-    for (var idx = 0; idx < tags.length; idx++) {
-        console.log( tags[idx].description, tags[idx].score )
-    }
+     for (var idx = 0; idx < tags.length; idx++) {
+         //console.log( tags[idx].description);
+         tagsStr += tags[idx].description + ',';
+     }
+     tagsStr = tagsStr.substr(0, tagsStr.length-1);
+     console.log("Tags:",tagsStr);
+     //console.log(response);
+     //console.log(response.responses);
+     var landmarkStr = response.responses[0].landmarkAnnotations[0].description;
+     console.log("Landmark:",landmarkStr);
+
+     //updateDB("A Torre Manuelina.jpg", tagsStr,landmarkStr);
+
+     //console.log(response.responses[0]);
 }
+
+function updateDB(filename, tags,landmark){
+
+  let sql = `UPDATE photoTags
+            SET landmark =`landmark, `tags=`tags` 
+            WHERE fileName =`filename;
+
+  db.run(sql, function(err) {
+  if (err) {
+    return console.error(err.message);
+  }
+  console.log("Database entry updated");
+  });
+ 
+// close the database connection
+  db.close();
+
+} // end of updateDB
 
 function getImageTags(filename) {
 
@@ -32,7 +66,10 @@ function getImageTags(filename) {
               "features":[
                 {
                   "type":"LABEL_DETECTION",
-                  "maxResults":10
+                  "maxResults":6
+                },
+                {
+                  "type":"LANDMARK_DETECTION",
                 }
               ]
             }
@@ -43,8 +80,8 @@ function getImageTags(filename) {
 
     const req = https.request(options, (res) => {
 
-        console.log('statusCode:', res.statusCode);
-        console.log('headers:', res.headers);
+        //console.log('statusCode:', res.statusCode);
+        //console.log('headers:', res.headers);
         
         res.on('data', (d) => {
             response.push(d);

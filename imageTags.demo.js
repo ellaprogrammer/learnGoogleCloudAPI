@@ -4,24 +4,39 @@ var sqlite3 = require("sqlite3").verbose();
 var dbFileName = "PhotoQ.db";
 var db = new sqlite3.Database(dbFileName);
 
+var queue = [];
+var totalDBCalls = 12;
 var counter = 0;
+var cbCount = 0;
+var cbGoal = totalDBCalls; //989
 
-while (counter < 3){
+  if (cbCount === cbGoal){
+    db.close();
+  } 
+
+while (counter < totalDBCalls){
+  console.log("yay for zack and ella");
   db.get('SELECT fileName FROM photoTags WHERE idNum = ' + counter, dataCallback);
 
   function dataCallback( err, data ) {
+      console.log("yay");
       var filename = data.fileName;
-      getImageTags(filename);
+      console.log(filename);
+      queue.push( () => getImageTags(filename));
+      next();
   }
   counter++;
+  cbCount++;
+
 }
 
+next();
 
 
 var API_KEY= 'AIzaSyCe31QbxiHWLedN6egRGDvckIQCMSj_dTU';
 
 function printTags(response, filename) {
-    console.log(JSON.stringify(response));
+    //console.log(JSON.stringify(response));
     var rspString = JSON.stringify(response);
 
     //check if 'error' is in the response
@@ -29,6 +44,7 @@ function printTags(response, filename) {
     if (check0 == true){
       console.log("You got an error: ");
       console.log(JSON.stringify(response));
+      cbCount = cbGoal;
       return;
     }
 
@@ -62,6 +78,7 @@ function printTags(response, filename) {
      }
 
      updateDB(filename, tagsStr,landmarkStr);
+     next();
 
 }
 
@@ -72,7 +89,7 @@ function updateDB(filename, tags,landmark){
   var cmd = cmdStr.replace("Belém", landmark);
   cmd = cmd.replace("sky", tags);
   cmd = cmd.replace("A Torre Manuelina.jpg", filename);
-  console.log(cmd);
+  //console.log(cmd);
 
   console.log("Updating entry with fileName: ",filename);
 
@@ -82,15 +99,18 @@ function updateDB(filename, tags,landmark){
     return console.error(err.message);
   }
   console.log("Database entry updated");
+  
   });
  
 // close the database connection
-  db.close();
+  //db.close();
 
 } // end of updateDB
 
 
 function getImageTags(filename) {
+
+    console.log("yay image tags");
 
     var imageStringB64 = filename.toString('base64');
 
@@ -139,4 +159,11 @@ function getImageTags(filename) {
 
     req.write( JSON.stringify(params) );
     req.end();
+}
+
+function next() {
+    if (queue.length > 0) {
+        console.log("    Launching item", queue.length-1);
+        queue.pop()();
+    }
 }

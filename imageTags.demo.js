@@ -4,35 +4,65 @@ var sqlite3 = require("sqlite3").verbose();
 var dbFileName = "PhotoQ.db";
 var db = new sqlite3.Database(dbFileName);
 
-db.get('SELECT fileName FROM photoTags WHERE idNum = 2', dataCallback);
+var counter = 0;
 
-function dataCallback( err, data ) {
-    var filename = data.fileName;
-    getImageTags(filename);
+while (counter < 3){
+  db.get('SELECT fileName FROM photoTags WHERE idNum = ' + counter, dataCallback);
+
+  function dataCallback( err, data ) {
+      var filename = data.fileName;
+      getImageTags(filename);
+  }
+  counter++;
 }
+
+
 
 var API_KEY= 'AIzaSyCe31QbxiHWLedN6egRGDvckIQCMSj_dTU';
 
 function printTags(response, filename) {
-    //console.log(JSON.stringify(response));
-    var tags = response.responses[0].labelAnnotations;
-    var tagsStr = '';
-    //console.log(tags);
+    console.log(JSON.stringify(response));
+    var rspString = JSON.stringify(response);
 
-     for (var idx = 0; idx < tags.length; idx++) {
+    //check if 'error' is in the response
+    var check0 = rspString.includes("error");
+    if (check0 == true){
+      console.log("You got an error: ");
+      console.log(JSON.stringify(response));
+      return;
+    }
+
+    //check if 'labelAnnotations' is in the response
+    var check1 = rspString.includes("labelAnnotations");
+    if (check1 == false) {
+      console.log("No tags.");
+      tags = '';
+    }
+    else{
+      var tags = response.responses[0].labelAnnotations;
+      var tagsStr = '';
+      for (var idx = 0; idx < tags.length; idx++) {
          //console.log( tags[idx].description);
          tagsStr += tags[idx].description + ',';
+       }
+       tagsStr = tagsStr.substr(0, tagsStr.length-1);
+       console.log("Tags:",tagsStr);
+    }
+    
+
+     //check if 'landmarkAnnotations' is in the response
+     var check2 = rspString.includes("landmarkAnnotations");
+     if (check2 == false) {
+      console.log("No landmark.");
+      landmarkStr = '';
      }
-     tagsStr = tagsStr.substr(0, tagsStr.length-1);
-     console.log("Tags:",tagsStr);
-     //console.log(response);
-     //console.log(response.responses);
-     var landmarkStr = response.responses[0].landmarkAnnotations[0].description;
-     console.log("Landmark:",landmarkStr);
+     else{
+      var landmarkStr = response.responses[0].landmarkAnnotations[0].description;
+      console.log("Landmark:",landmarkStr);
+     }
 
      updateDB(filename, tagsStr,landmarkStr);
 
-     //console.log(response.responses[0]);
 }
 
 function updateDB(filename, tags,landmark){
@@ -41,7 +71,7 @@ function updateDB(filename, tags,landmark){
 
   var cmd = cmdStr.replace("Belém", landmark);
   cmd = cmd.replace("sky", tags);
-  cmd = cmd.replace("A Torre Manuelina.jpg", 'http://lotus.idav.ucdavis.edu/public/ecs162/UNESCO/'+ filename);
+  cmd = cmd.replace("A Torre Manuelina.jpg", filename);
   console.log(cmd);
 
   console.log("Updating entry with fileName: ",filename);

@@ -5,32 +5,34 @@ var dbFileName = "PhotoQ.db";
 var db = new sqlite3.Database(dbFileName);
 
 var queue = [];
-var totalDBCalls = 12;
+var totalDBCalls = 250;
 var counter = 0;
 var cbCount = 0;
 var cbGoal = totalDBCalls; //989
+
+https.globalAgent.maxSockets = 1;
 
   if (cbCount === cbGoal){
     db.close();
   } 
 
 while (counter < totalDBCalls){
-  console.log("yay for zack and ella");
+  //console.log("yay for zack and ella");
   db.get('SELECT fileName FROM photoTags WHERE idNum = ' + counter, dataCallback);
+  counter++;
+  cbCount++;
 
-  function dataCallback( err, data ) {
+}
+
+
+function dataCallback( err, data ) {
       console.log("yay");
       var filename = data.fileName;
       console.log(filename);
       queue.push( () => getImageTags(filename));
       next();
   }
-  counter++;
-  cbCount++;
 
-}
-
-next();
 
 
 var API_KEY= 'AIzaSyCe31QbxiHWLedN6egRGDvckIQCMSj_dTU';
@@ -63,6 +65,13 @@ function printTags(response, filename) {
        }
        tagsStr = tagsStr.substr(0, tagsStr.length-1);
        console.log("Tags:",tagsStr);
+
+       if (tagsStr != undefined){
+          while(tagsStr.indexOf("'")!= -1){
+            tagsStr = tagsStr.replace("'","");
+         }
+       }
+
     }
     
 
@@ -73,12 +82,23 @@ function printTags(response, filename) {
       landmarkStr = '';
      }
      else{
+
       var landmarkStr = response.responses[0].landmarkAnnotations[0].description;
       console.log("Landmark:",landmarkStr);
+
+      if (landmarkStr != undefined) {
+        while (landmarkStr.indexOf("'")!= -1) {
+            console.log("before: ", landmarkStr);
+            landmarkStr = landmarkStr.replace("'","");
+            console.log("landmark: ", landmarkStr);
+          }
+      }
+
      }
 
+
      updateDB(filename, tagsStr,landmarkStr);
-     next();
+
 
 }
 
@@ -163,7 +183,9 @@ function getImageTags(filename) {
 
 function next() {
     if (queue.length > 0) {
-        console.log("    Launching item", queue.length-1);
+        //console.log("    Launching item", queue.length-1);
         queue.pop()();
     }
 }
+
+

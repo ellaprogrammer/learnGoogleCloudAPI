@@ -53,10 +53,23 @@ function handler (request, response) {
                 // console.log("Cmd for db: ",cmd);
 
                 //var cmd = 'UPDATE [photoTags] SET tags="' + tagsForUpdate + '" WHERE fileName="http://lotus.idav.ucdavis.edu/public/ecs162/UNESCO/' + sourceForUpdate + '"';
-                var cmd = 'UPDATE photoTags SET tags="' + tagsForUpdate + '" WHERE fileName="'+sourceForUpdate+'"';
+                //var cmd = 'UPDATE [photoTags] SET tags="' +''+ tagsForUpdate +''+ '" WHERE fileName="'+''+sourceForUpdate+'"'+"'";
+                var cmd = 'UPDATE [photoTags] SET tags="' + tagsForUpdate + '" WHERE fileName="http://lotus.idav.ucdavis.edu/public/ecs162/UNESCO/'+sourceForUpdate+'"';
+                console.log("tags for update: ", tagsForUpdate);
                 console.log("Successfully removed tag from database");
                 db.run(cmd); 
                 response.end();
+
+                function dataCallback2 (err, data) {
+                    console.log("in data callback, data: ", data);
+
+                    response.writeHead(200, {"Content-Type": "application/json"});
+                    //response.write(JSON.stringify(dataAR), function(err) { response.end(); });
+                    response.write(JSON.stringify(data));
+                    response.end();
+
+                    db.close();
+                }
 
                 //update has no callback
                 //select has callback
@@ -162,5 +175,4 @@ function handler (request, response) {
     }).resume();
 }
 
-
-server.listen("52924");
+server.listen("YOURPORTNUMBER");
